@@ -36,6 +36,9 @@
     "sqlite3": "^5.1.7",
     "typeorm": "^0.3.20"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
