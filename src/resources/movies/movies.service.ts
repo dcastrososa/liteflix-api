@@ -54,7 +54,7 @@ export class MoviesService {
             });
     
             if (existingMovie) {
-                throw new BadRequestException('A movie with this title already exists');
+                throw new Error('A movie with this title already exists');
             }
     
             const posterUrl = await this.uploadService.uploadImage(file);
@@ -69,7 +69,7 @@ export class MoviesService {
             return this.moviesRepository.save(movie);
         } catch (e) {
             console.error(e);
-            throw new Error("Error creating movie");
+            throw new BadRequestException("Error creating movie");
         }
     }
 
