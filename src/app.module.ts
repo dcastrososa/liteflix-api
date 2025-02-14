@@ -4,12 +4,12 @@ import {
     NestModule,
     RequestMethod,
 } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { ResourcesModule } from './resources/resources.module';
 import { MoviesModule } from './resources/movies/movies.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Movie } from './resources/entities/movie.entity';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 @Module({
     imports: [
@@ -19,13 +19,20 @@ import { Movie } from './resources/entities/movie.entity';
         ResourcesModule,
         MoviesModule,
         TypeOrmModule.forRoot({
-            type: 'sqlite',
-            database: process.env.NODE_ENV === 'production'
-                ? '/tmp/db.sqlite'
-                : 'db.sqlite',
+            type: process.env.NODE_ENV === 'production' ? 'postgres' : 'sqlite',
+            ...process.env.NODE_ENV === 'production' 
+                ? {
+                    url: process.env.DATABASE_URL,
+                    ssl: {
+                        rejectUnauthorized: false
+                    },
+                }
+                : {
+                    database: 'db.sqlite',
+                },
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            synchronize: true,
-        })
+            synchronize: true, // Ten cuidado con esto en producción
+        } as TypeOrmModuleOptions),
     ],
 })
 export class AppModule implements NestModule {
