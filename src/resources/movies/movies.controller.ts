@@ -4,7 +4,7 @@ import { MoviesService } from "./movies.service";
 import { ApiOperation, ApiOkResponse, ApiConsumes, ApiBody } from "@nestjs/swagger";
 import { UploadService } from '../../common/services/upload.service';
 import { CreateMovieInDto } from './dto/in/CreateMovie.in.dto';
-import { Movie } from "../entities/movie.entity";
+import { MovieDto } from "./dto/out/Movie.out.dto";
 
 @Controller('movies')
 export class MoviesController {
@@ -15,14 +15,14 @@ export class MoviesController {
 
     @Get('now-playing')
     @ApiOperation({ summary: 'Get now playing movie' })
-    @ApiOkResponse({ description: 'Now playing movie', type: Movie })
+    @ApiOkResponse({ description: 'Now playing movie', type: MovieDto })
     async getNowPlaying() {
         return this.moviesService.getNowPlaying();
     }
 
     @Get('popular')
     @ApiOperation({ summary: 'Get popular movies' })
-    @ApiOkResponse({ description: 'Popular movies', type: Movie, isArray: true })
+    @ApiOkResponse({ description: 'Popular movies', type: MovieDto, isArray: true })
     async getPopular() {
         return this.moviesService.getPopular();
     }
@@ -55,7 +55,7 @@ export class MoviesController {
 
     @Get('my-movies')
     @ApiOperation({ summary: 'Get all my uploaded movies' })
-    @ApiOkResponse({ description: 'List of my movies', type: Movie, isArray: true })
+    @ApiOkResponse({ description: 'List of my movies', type: MovieDto, isArray: true })
     async getMyMovies() {
         return this.moviesService.getMyMovies();
     }
