@@ -20,10 +20,12 @@ import { Movie } from './resources/entities/movie.entity';
         MoviesModule,
         TypeOrmModule.forRoot({
             type: 'sqlite',
-            database: 'db/movies.sqlite',
-            entities: [Movie],
-            synchronize: true, // No usar en producción
-        }),
+            database: process.env.NODE_ENV === 'production'
+                ? '/tmp/db.sqlite'
+                : 'db.sqlite',
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: true,
+        })
     ],
 })
 export class AppModule implements NestModule {
