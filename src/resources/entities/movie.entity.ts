@@ -16,4 +16,7 @@ export class Movie {
 
     @Column({ nullable: true })
     releaseDate?: string;
+
+    @Column({ nullable: true })
+    userIp?: string;
 } 

@@ -1,11 +1,14 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Inject } from "@nestjs/common";
 import { ThemeMovieService } from "src/externalServices/themeMovie/themeMovie.service";
 import { imageConfiguration } from "src/externalServices/themeMovie/common/imageConfiguration";
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Movie } from '../entities/movie.entity';
 import { UploadService } from '../../common/services/upload.service';
 import { CreateMovieInDto } from './dto/in/CreateMovie.in.dto';
+import { Request } from 'express';
+import { REQUEST } from '@nestjs/core';
+import { MovieDto } from "./dto/out/Movie.out.dto";
 
 @Injectable()
 export class MoviesService {
@@ -14,16 +17,18 @@ export class MoviesService {
         @InjectRepository(Movie)
         private moviesRepository: Repository<Movie>,
         private readonly uploadService: UploadService,
+        @Inject(REQUEST) private readonly request: Request,
     ) { }
 
-    async getNowPlaying(): Promise<Movie> {
+    async getNowPlaying(): Promise<Omit<MovieDto, 'voteAverage' | 'releaseDate'>> {
         try {
             const { data: { results } } = await this.themeMovieService.getNowPlaying();
-            const movie = results[2];
+            const randomIndex = Math.floor(Math.random() * results.length);
+            const movie = results[randomIndex];
             return {
                 id: movie.id,
                 originalTitle: movie.original_title,
-                posterUrl: `${imageConfiguration.baseUrl}${imageConfiguration.backdropSizes.w1280}${movie.backdrop_path}`
+                posterUrl: `${imageConfiguration.baseUrl}${imageConfiguration.backdropSizes.w1280}${movie.backdrop_path}`,
             }
         } catch (e) {
             console.error(e);
@@ -49,33 +54,46 @@ export class MoviesService {
 
     async createMovie(createMovieDto: CreateMovieInDto, file: Express.Multer.File): Promise<Movie> {
         try {
+            const userIp = this.request.ip;
+            const titleLowerCase = createMovieDto.title.toLowerCase();
+            
             const existingMovie = await this.moviesRepository.findOne({
-                where: { originalTitle: createMovieDto.title }
+                where: { 
+                    originalTitle: ILike(titleLowerCase),
+                    userIp
+                }
             });
     
             if (existingMovie) {
-                throw new Error('A movie with this title already exists');
+                throw new BadRequestException('Una pelicula con este titulo ya existe para este usuario');
             }
     
             const posterUrl = await this.uploadService.uploadImage(file);
     
             const movie = this.moviesRepository.create({
-                originalTitle: createMovieDto.title,
+                originalTitle: titleLowerCase,
                 posterUrl,
                 releaseDate: new Date().toISOString().split('T')[0],
                 voteAverage: 0,
+                userIp
             });
     
             return this.moviesRepository.save(movie);
         } catch (e) {
+            if (e instanceof BadRequestException) {
+                throw e;
+            }
             console.error(e);
-            throw new BadRequestException("Error creating movie");
+            throw new BadRequestException(e.message || "Error creating movie");
         }
     }
 
-    async getMyMovies(): Promise<Movie[]> {
+    async getMyMovies(): Promise<MovieDto[]> {
         try {
+            const userIp = this.request.ip;
+            
             const movies = await this.moviesRepository.find({
+                where: { userIp },
                 order: {
                     releaseDate: 'DESC'
                 }
@@ -85,8 +103,8 @@ export class MoviesService {
                 id: movie.id,
                 originalTitle: movie.originalTitle,
                 posterUrl: movie.posterUrl,
-                voteAverage: movie.voteAverage,
-                releaseDate: movie.releaseDate
+                voteAverage: movie.voteAverage || 0,
+                releaseDate: movie.releaseDate || ''
             }));
         } catch (e) {
             console.error(e);
