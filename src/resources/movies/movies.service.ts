@@ -20,6 +20,10 @@ export class MoviesService {
         @Inject(REQUEST) private readonly request: Request,
     ) { }
 
+    private cleanIpAddress(ip: string | undefined): string {
+        return ip?.replace('::ffff:', '') || '';
+    }
+
     async getNowPlaying(): Promise<Omit<MovieDto, 'voteAverage' | 'releaseDate'>> {
         try {
             const { data: { results } } = await this.themeMovieService.getNowPlaying();
@@ -54,13 +58,12 @@ export class MoviesService {
 
     async createMovie(createMovieDto: CreateMovieInDto, file: Express.Multer.File): Promise<Movie> {
         try {
-            const userIp = this.request.ip;
+            const userIp = this.cleanIpAddress(this.request.ip);
             const titleLowerCase = createMovieDto.title.toLowerCase();
             
             const existingMovie = await this.moviesRepository.findOne({
                 where: { 
                     originalTitle: ILike(titleLowerCase),
-                    userIp
                 }
             });
     
@@ -90,7 +93,7 @@ export class MoviesService {
 
     async getMyMovies(): Promise<MovieDto[]> {
         try {
-            const userIp = this.request.ip;
+            const userIp = this.cleanIpAddress(this.request.ip);
             
             const movies = await this.moviesRepository.find({
                 where: { userIp },
