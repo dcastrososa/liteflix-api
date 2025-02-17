@@ -20,10 +20,6 @@ export class MoviesService {
         @Inject(REQUEST) private readonly request: Request,
     ) { }
 
-    private cleanIpAddress(ip: string | undefined): string {
-        return ip?.replace('::ffff:', '') || '';
-    }
-
     async getNowPlaying(): Promise<Omit<MovieDto, 'voteAverage' | 'releaseDate'>> {
         try {
             const { data: { results } } = await this.themeMovieService.getNowPlaying();
@@ -58,12 +54,17 @@ export class MoviesService {
 
     async createMovie(createMovieDto: CreateMovieInDto, file: Express.Multer.File): Promise<Movie> {
         try {
-            const userIp = this.cleanIpAddress(this.request.ip);
+            const userUUID = this.request.headers['user-uuid'] as string;
+            if (!userUUID) {
+                throw new BadRequestException('User UUID is required');
+            }
+
             const titleLowerCase = createMovieDto.title.toLowerCase();
             
             const existingMovie = await this.moviesRepository.findOne({
                 where: { 
                     originalTitle: ILike(titleLowerCase),
+                    userUUID
                 }
             });
     
@@ -78,7 +79,7 @@ export class MoviesService {
                 posterUrl,
                 releaseDate: new Date().toISOString().split('T')[0],
                 voteAverage: 0,
-                userIp
+                userUUID
             });
     
             return this.moviesRepository.save(movie);
@@ -93,10 +94,13 @@ export class MoviesService {
 
     async getMyMovies(): Promise<MovieDto[]> {
         try {
-            const userIp = this.cleanIpAddress(this.request.ip);
+            const userUUID = this.request.headers['user-uuid'] as string;
+            if (!userUUID) {
+                throw new BadRequestException('User UUID is required');
+            }
             
             const movies = await this.moviesRepository.find({
-                where: { userIp },
+                where: { userUUID },
                 order: {
                     releaseDate: 'DESC'
                 }
@@ -110,8 +114,11 @@ export class MoviesService {
                 releaseDate: movie.releaseDate || ''
             }));
         } catch (e) {
+            if (e instanceof BadRequestException) {
+                throw e;
+            }
             console.error(e);
-            throw new Error("Error getting my movies");
+            throw new BadRequestException(e.message || "Error getting my movies");
         }
     }
 }

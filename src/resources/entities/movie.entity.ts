@@ -18,5 +18,5 @@ export class Movie {
     releaseDate?: string;
 
     @Column({ nullable: true })
-    userIp?: string;
+    userUUID?: string;
 } 
