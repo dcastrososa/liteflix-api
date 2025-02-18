@@ -1,2 +1,1 @@
-echo "pnpm lint-staged && pnpm test" > .husky/pre-commit
-chmod +x .husky/pre-commit
+pnpm lint-staged && pnpm test
